@@ -173,7 +173,7 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
     tgt_dict = {'mdk':('keil', 'armcc'),
                 'mdk4':('keil', 'armcc'),
                 'mdk5':('keil', 'armcc'),
-                'iar':('iar', 'iar'),
+                'iar':('iar', 'iccarm'),
                 'vs':('msvc', 'cl'),
                 'vs2012':('msvc', 'cl'),
                 'vsc' : ('gcc', 'gcc'),
@@ -186,7 +186,8 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
                 'cmake':('gcc', 'gcc'),
                 'cmake-armclang':('keil', 'armclang'),
                 'xmake':('gcc', 'gcc'),
-                'codelite' : ('gcc', 'gcc')}
+                'codelite' : ('gcc', 'gcc'),
+                'esp-idf': ('gcc', 'gcc')}
     tgt_name = GetOption('target')
 
     if tgt_name:
@@ -775,8 +776,16 @@ def DoBuilding(target, objects):
                             objects.remove(obj)
 
         # re-add the source files to the objects
+
+        objects_in_group = []
         for group in Projects:
-            local_group(group, objects)
+            local_group(group, objects_in_group)
+
+        # sort seperately, because the data type of
+        # the members of the two lists are different
+        objects_in_group = sorted(objects_in_group)
+        objects = sorted(objects)
+        objects.append(objects_in_group)
 
         program = Env.Program(target, objects)
 
@@ -849,9 +858,15 @@ def GenTargetProject(program = None):
     if GetOption('target') == 'cmake' or GetOption('target') == 'cmake-armclang':
         from cmake import CMakeProject
         CMakeProject(Env,Projects)
+
     if GetOption('target') == 'xmake':
         from xmake import XMakeProject
         XMakeProject(Env, Projects)
+
+    if GetOption('target') == 'esp-idf':
+        from esp_idf import ESPIDFProject
+        ESPIDFProject(Env, Projects)
+        exit(0)
 
 def EndBuilding(target, program = None):
 
